@@ -1,0 +1,787 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML><HEAD><TITLE>Man page of coronet</TITLE>
+</HEAD><BODY text="#0000FF" bgcolor="#FFFFFF" style="font-family: monospace;">
+<H1>coronet</H1>
+Section: coroutine/epoll network engine (3)<BR>Updated: 0.23<BR><A HREF="#index">Index</A>
+<A HREF="/cgi-bin/man/man2html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+<P>
+conet_init, conet_cleanup, conet_readsome, conet_read, conet_readln,
+conet_write, conet_printf, conet_new_conn, conet_close_conn, conet_set_timeo,
+conet_mod_conn, conet_socket, conet_connect, conet_accept, conet_create_conn,
+conet_events_wait, conet_events_dispatch
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:///usr/include/coronet.h">coronet.h</A>&gt;</B>
+
+<B>int conet_init(void);</B>
+<B>void conet_cleanup(void);</B>
+<B>int conet_readsome(struct sk_conn *</B><I>conn</I><B>, void *</B><I>buf</I><B>, int </B><I>n</I><B>);</B>
+<B>int conet_read(struct sk_conn *</B><I>conn</I><B>, void *</B><I>buf</I><B>, int </B><I>n</I><B>);</B>
+<B>char *conet_readln(struct sk_conn *</B><I>conn</I><B>, int *</B><I>lnsize</I><B>);</B>
+<B>int conet_write(struct sk_conn *</B><I>conn</I><B>, void const *</B><I>buf</I><B>, int </B><I>n</I><B>);</B>
+<B>int conet_printf(struct sk_conn *</B><I>conn</I><B>, char const *</B><I>fmt</I><B>, ...);</B>
+<B>struct sk_conn *conet_new_conn(int </B><I>sfd</I><B>, coroutine_t </B><I>co</I><B>);</B>
+<B>void conet_close_conn(struct sk_conn *</B><I>conn</I><B>);</B>
+<B>int conet_set_timeo(struct sk_conn *</B><I>conn</I><B>, int </B><I>timeo</I><B>);</B>
+<B>int conet_mod_conn(struct sk_conn *</B><I>conn</I><B>, unsigned int </B><I>events</I><B>);</B>
+<B>int conet_socket(int </B><I>domain</I><B>, int </B><I>type</I><B>, int </B><I>protocol</I><B>);</B>
+<B>int conet_connect(struct sk_conn *</B><I>conn</I><B>, const struct sockaddr *</B><I>serv_addr</I><B>, socklen_t </B><I>addrlen</I><B>);</B>
+<B>int conet_accept(struct sk_conn *</B><I>conn</I><B>, struct sockaddr *</B><I>addr</I><B>, int *</B><I>addrlen</I><B>);</B>
+<B>struct sk_conn *conet_create_conn(int </B><I>domain</I><B>, int </B><I>type</I><B>, int </B><I>protocol</I><B>, coroutine_t </B><I>co</I><B>);</B>
+<B>int conet_events_wait(int </B><I>timeo</I><B>);</B>
+<B>int conet_events_dispatch(int </B><I>evdmax</I><B>);</B>
+
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>coronet</B>
+
+library implements an
+<B>epoll</B>
+
+and
+<B>coroutine</B>
+
+based library that allows for async operations over certain kinds of
+files (any file that supports
+<B><A HREF="/cgi-bin/man/man2html?2+poll">poll</A></B>(2)
+
+and the
+<I>O_NONBLOCK</I>
+
+<B><A HREF="/cgi-bin/man/man2html?2+fcntl">fcntl</A></B>(2)
+
+flag can be hosted - like sockets, pipes, ...).
+The
+<B>coronet</B>
+
+library uses the
+<B><A HREF="/cgi-bin/man/man2html?4+epoll">epoll</A></B>(4)
+
+support available in the 2.6 series of
+<B>Linux</B>
+
+kernels (using a
+<B>glibc</B>
+
+version of 2.3.2 or newer), and the
+<B>libpcl</B>
+
+library for coroutine support (available as a package in many distributions).
+See the
+<B>AVAILABILITY</B>
+
+section and the
+<B><A HREF="/cgi-bin/man/man2html?3+pcl">pcl</A></B>(3)
+
+man page for more information about coroutines and their management with
+<B>libpcl</B>.
+
+<P>
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>FUNCTIONS</H2>
+
+The following functions are defined:
+<DL COMPACT>
+<DT><B>int conet_init(void);</B>
+
+<DD>
+<P>
+The
+<B>conet_init</B>
+
+function initializes the
+<B>coronet</B>
+
+library. It must be called before any other
+<B>coronet</B>
+
+function is called.
+It returns 0 in case of success, or a negative number in case of error.
+<P>
+<DT><B>void conet_cleanup(void);</B>
+
+<DD>
+<P>
+The
+<B>conet_cleanup</B>
+
+function cleanups the
+<B>coronet</B>
+
+context. It should be called when the suer wants to free all the
+resources associated with the
+<B>coronet</B>
+
+library.
+<P>
+<DT><B>int conet_readsome(struct sk_conn *</B><I>conn</I><B>, void *</B><I>buf</I><B>, int </B><I>n</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_readsome</B>
+
+function reads some data from the
+<I>conn</I>
+
+connection. Data will be stored in the
+<I>buf</I>
+
+buffer, and up to
+<I>n</I>
+
+bytes will be read.
+The function returns the number of bytes read (that can be lower than
+<I>n</I>
+
+), or a negative number in case of error. Zero can be also returned, to
+indicate that we are at the end of file (or that the remote peer closed
+the connection, in case of a socket).
+<P>
+<DT><B>int conet_read(struct sk_conn *</B><I>conn</I><B>, void *</B><I>buf</I><B>, int </B><I>n</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_read</B>
+
+function reads
+<I>n</I>
+
+bytes into the
+<I>buf</I>
+
+buffer, from the
+<I>conn</I>
+
+connection. The
+<B>conet_read</B>
+
+function tries to read
+<I>n</I>
+
+bytes, and does not return until
+<I>n</I>
+
+bytes are read, or an error occurred.
+The function returns the number of bytes read, or a number lower than
+<I>n</I>
+
+in case of error. A number lower then
+<I>n</I>
+
+can be also returned, to indicate that we are at the end of file (or
+that the remote peer closed the connection, in case of a socket).
+<P>
+<DT><B>int conet_write(struct sk_conn *</B><I>conn</I><B>, void const *</B><I>buf</I><B>, int </B><I>n</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_write</B>
+
+function writes
+<I>n</I>
+
+bytes from the
+<I>buf</I>
+
+buffer, into the
+<I>conn</I>
+
+connection. The
+<B>conet_write</B>
+
+function tries to write
+<I>n</I>
+
+bytes, and does not return until
+<I>n</I>
+
+bytes are written, or an error occurred.
+The function returns the number of bytes written, or a number lower than
+<I>n</I>
+
+in case of error.
+<P>
+<DT><B>int conet_printf(struct sk_conn *</B><I>conn</I><B>, char const *</B><I>fmt</I><B>, ...);</B>
+
+<DD>
+<P>
+The
+<B>conet_printf</B>
+
+function writes a formatted string to the
+<I>conn</I>
+
+connection.
+The function returns the number of bytes written, or a negative number
+in case of error.
+<P>
+<DT><B>struct sk_conn *conet_new_conn(int </B><I>sfd</I><B>, coroutine_t </B><I>co</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_new_conn</B>
+
+function creates a new connection based on the
+<I>sfd</I>
+
+file descriptor and the
+<I>co</I>
+
+coroutine.
+The function returns a new connection pointer in case of success,
+or
+<B>NULL</B>
+
+in case of error.
+<P>
+<DT><B>void conet_close_conn(struct sk_conn *</B><I>conn</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_close_conn</B>
+
+function closes the connection passed into the
+<I>conn</I>
+
+parameter. A
+<B><A HREF="/cgi-bin/man/man2html?2+close">close</A></B>(2)
+
+call will be performed of the file descriptor at this stage.
+<P>
+<DT><B>int conet_set_timeo(struct sk_conn *</B><I>conn</I><B>, int </B><I>timeo</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_set_timeo</B>
+
+function sets the expiration timeout
+<I>timeo</I>
+
+for the async operations issued over the
+<I>conn</I>
+
+connection.
+The
+<I>timeo</I>
+
+timeout is in seconds. The expire timeout does not need to be seen
+as an high precision timing, since the expire operation is lazily done
+inside the
+<B>conet_events_dispatch</B>
+
+function. A one to two seconds resolution can be expected.
+<P>
+<DT><B>int conet_mod_conn(struct sk_conn *</B><I>conn</I><B>, unsigned int </B><I>events</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_mod_conn</B>
+
+function modifies the interest event set for the connection
+<I>conn</I>
+
+to the
+<I>events</I>
+
+set. See
+<B><A HREF="/cgi-bin/man/man2html?2+epoll_ctl">epoll_ctl</A></B>(2)
+
+for a detailed description of the supported event bits.
+The function returns 0 in case of success, or a negative number
+in case of error.
+<P>
+<DT><B>int conet_socket(int </B><I>domain</I><B>, int </B><I>type</I><B>, int </B><I>protocol</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_socket</B>
+
+function creates a new socket descriptor to be used inside the
+<B>coronet</B>
+
+library. The
+<I>domain</I>, <I>type</I> and <I>protocol</I>
+
+parameters are the same as the ones passed to the
+<B><A HREF="/cgi-bin/man/man2html?2+socket">socket</A></B>(2)
+
+function.
+The function returns the newly created socket descriptor, or -1 in
+case of error.
+<P>
+<DT><B>int conet_connect(struct sk_conn *</B><I>conn</I><B>, const struct sockaddr *</B><I>serv_addr</I><B>, socklen_t </B><I>addrlen</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_connect</B>
+
+functions tries to establish a connection from
+<I>conn</I>
+
+to the remote address pointed by
+<I>serv_addr</I>,
+
+whose length is passed in the
+<I>addrlen</I>
+
+parameter.
+The function returns 0 in case of success, or a negative number
+in case of error.
+<P>
+<DT><B>int conet_accept(struct sk_conn *</B><I>conn</I><B>, struct sockaddr *</B><I>addr</I><B>, int *</B><I>addrlen</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_accept</B>
+
+function accepts a new connection into
+<I>conn</I>
+
+and stores the peer address in the
+<I>addr</I>
+
+parameter. The parameter
+<I>addrlen</I>
+
+stores the size of
+<I>addr</I>
+
+in input, and receives the size of
+<I>addr</I>
+
+in output.
+The function returns the newly accepted socket descriptor, or -1 in
+case of error.
+<P>
+<DT><B>struct sk_conn *conet_create_conn(int </B><I>domain</I><B>, int </B><I>type</I><B>, int </B><I>protocol</I><B>, coroutine_t </B><I>co</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_create_conn</B>
+
+creates a new connection. This is basically a chain of a
+<B>conet_socket</B>
+
+and a
+<B>conet_new_conn</B>
+
+function calls.
+The function returns a new connection pointer in case of success,
+or
+<B>NULL</B>
+
+in case of error.
+<P>
+<DT><B>int conet_events_wait(int </B><I>timeo</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_events_wait</B>
+
+function waits for some events ready for all the async operations
+currently in flight on any of the file descriptors hosted by the
+<B>coronet</B>
+
+library. This is the only blocking call of all the
+<B>coronet</B>
+
+functions.
+The
+<I>timeo</I>
+
+specify a maximum time, in milliseconds, to wait for events.
+The function returns the current number of ready events
+currently available for dispatch, or a negative number in case
+of error.
+<P>
+<DT><B>int conet_events_dispatch(int </B><I>evdmax</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>conet_events_dispatch</B>
+
+function dispatch up to
+<I>evdmax</I>
+
+events to the coroutines handling the async operations that became ready.
+If
+<I>evdmax</I>
+
+is lower or equal to zero, all the pending ready events will be
+dispatched.
+The function returns the number of dispatched events, or a negative
+number in case of error.
+<P>
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<P>
+A few example usage of the
+<B>coronet</B>
+
+library are available inside the
+<I>test</I>
+
+subdirectory of the
+<B>coronet</B>
+
+package. An example of a trivial web server based on the
+<B>coronet</B>
+
+library is here reported inline:
+
+<P>
+<PRE>
+#define _GNU_SOURCE
+#include &lt;<A HREF="file:///usr/include/sys/types.h">sys/types.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/sys/time.h">sys/time.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/time.h">time.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/fcntl.h">fcntl.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/string.h">string.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/ctype.h">ctype.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/unistd.h">unistd.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/errno.h">errno.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/stdarg.h">stdarg.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/limits.h">limits.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/signal.h">signal.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/dirent.h">dirent.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/sys/socket.h">sys/socket.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/netinet/in.h">netinet/in.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/netinet/tcp.h">netinet/tcp.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/arpa/inet.h">arpa/inet.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/arpa/nameser.h">arpa/nameser.h</A>&gt;
+#include &lt;<A HREF="file:///usr/include/netdb.h">netdb.h</A>&gt;
+#include &quot;coronet.h&quot;
+
+
+#define CNHD_EVWAIT_TIMEO 1000
+#define CNHD_STKSIZE (1024 * 8)
+
+
+static int stopsvr;
+static char const *rootfs = &quot;.&quot;;
+static int svr_port = 80;
+static int lsnbklog = 128;
+static int stksize = CNHD_STKSIZE;
+static unsigned long long conns, reqs, tbytes;
+
+
+static int cnhd_set_cork(int fd, int v) {
+
+        return setsockopt(fd, SOL_TCP, TCP_CORK, &amp;v, sizeof(v));
+}
+
+static int cnhd_send_mem(struct sk_conn *conn, long size, char const *ver,
+                         char const *cclose) {
+        size_t csize, n;
+        long msent;
+        static char mbuf[1024 * 8];
+
+        cnhd_set_cork(conn-&gt;sfd, 1);
+        conet_printf(conn,
+                     &quot;%s 200 OK\r\n&quot;
+                     &quot;Connection: %s\r\n&quot;
+                     &quot;Content-Length: %ld\r\n&quot;
+                     &quot;\r\n&quot;, ver, cclose, size);
+        for (msent = 0; msent &lt; size;) {
+                csize = (size - msent) &gt; sizeof(mbuf) ?
+                        sizeof(mbuf): (size_t) (size - msent);
+                if ((n = conet_write(conn, mbuf, csize)) &gt; 0)
+                        msent += n;
+                if (n != csize)
+                        break;
+        }
+        cnhd_set_cork(conn-&gt;sfd, 0);
+
+        tbytes += msent;
+
+        return msent == size ? 0: -1;
+}
+
+static int cnhd_send_doc(struct sk_conn *conn, char const *doc, char const *ver,
+                         char const *cclose) {
+
+        conet_printf(conn,
+                     &quot;%s 404 OK\r\n&quot;
+                     &quot;Connection: %s\r\n&quot;
+                     &quot;Content-Length: 0\r\n&quot;
+                     &quot;\r\n&quot;, ver, cclose);
+
+        return 0;
+}
+
+static int cnhd_send_url(struct sk_conn *conn, char const *doc, char const *ver,
+                         char const *cclose) {
+        int error;
+
+        if (strncmp(doc, &quot;/mem-&quot;, 5) == 0)
+                error = cnhd_send_mem(conn, atol(doc + 5), ver, cclose);
+        else
+                error = cnhd_send_doc(conn, doc, ver, cclose);
+
+        return error;
+}
+
+static void *cnhd_service(void *data) {
+        int cfd = (int) (long) data;
+        int cclose = 0, chunked, lsize, clen;
+        char *req, *meth, *doc, *ver, *ln, *auxptr;
+        struct sk_conn *conn;
+
+        if ((conn = conet_new_conn(cfd, co_current())) == NULL)
+                return NULL;
+        while (!stopsvr &amp;&amp; !cclose) {
+                if ((req = conet_readln(conn, &amp;lsize)) == NULL)
+                        break;
+                if ((meth = strtok_r(req, &quot; &quot;, &amp;auxptr)) == NULL ||
+                    (doc = strtok_r(NULL, &quot; &quot;, &amp;auxptr)) == NULL ||
+                    (ver = strtok_r(NULL, &quot; \r\n&quot;, &amp;auxptr)) == NULL ||
+                    strcasecmp(meth, &quot;GET&quot;) != 0) {
+                        bad_request:
+                        free(req);
+                        conet_printf(conn,
+                                     &quot;HTTP/1.1 400 Bad request\r\n&quot;
+                                     &quot;Connection: close\r\n&quot;
+                                     &quot;Content-Length: 0\r\n&quot;
+                                     &quot;\r\n&quot;);
+                        break;
+                }
+                reqs++;
+                cclose = strcasecmp(ver, &quot;HTTP/1.1&quot;) != 0;
+                for (clen = 0, chunked = 0;;) {
+                        if ((ln = conet_readln(conn, &amp;lsize)) == NULL)
+                                break;
+                        if (strcmp(ln, &quot;\r\n&quot;) == 0) {
+                                free(ln);
+                                break;
+                        }
+                        if (strncasecmp(ln, &quot;Content-Length:&quot;, 15) == 0) {
+                                for (auxptr = ln + 15; *auxptr == ' '; auxptr++);
+                                clen = atoi(auxptr);
+                        } else if (strncasecmp(ln, &quot;Connection:&quot;, 11) == 0) {
+                                for (auxptr = ln + 11; *auxptr == ' '; auxptr++);
+                                cclose = strncasecmp(auxptr, &quot;close&quot;, 5) == 0;
+                        } else if (strncasecmp(ln, &quot;Transfer-Encoding:&quot;, 18) == 0) {
+                                for (auxptr = ln + 18; *auxptr == ' '; auxptr++);
+                                chunked = strncasecmp(auxptr, &quot;chunked&quot;, 7) == 0;
+                        }
+                        free(ln);
+                }
+                /*
+                 * Sorry, really stupid HTTP server here. Neither GET payload nor
+                 * chunked encoding allowed.
+                 */
+                if (clen || chunked)
+                        goto bad_request;
+                cnhd_send_url(conn, doc, ver, cclose ? &quot;close&quot;: &quot;keep-alive&quot;);
+                free(req);
+        }
+        conet_close_conn(conn);
+
+        return data;
+}
+
+static void *cnhd_acceptor(void *data) {
+        int sfd = (int) (long) data;
+        int cfd, addrlen = sizeof(struct sockaddr_in);
+        coroutine_t co;
+        struct sk_conn *conn;
+        struct sockaddr_in addr;
+
+        if ((conn = conet_new_conn(sfd, co_current())) == NULL)
+                return NULL;
+        while (!stopsvr &amp;&amp;
+               (cfd = conet_accept(conn, (struct sockaddr *) &amp;addr,
+                                   &amp;addrlen)) != -1) {
+                conns++;
+                if ((co = co_create((void *) cnhd_service, (void *) (long) cfd, NULL,
+                                    stksize)) == NULL) {
+                        fprintf(stderr, &quot;Unable to create coroutine\n&quot;);
+                        close(cfd);
+                } else
+                        co_call(co);
+        }
+        conet_close_conn(conn);
+
+        return data;
+}
+
+static void cnhd_sigint(int sig) {
+
+        stopsvr++;
+}
+
+static void cnhd_usage(char const *prg) {
+
+        fprintf(stderr, &quot;Use: %s [-p PORT (%d)] [-r ROOTFS ('%s')] [-L LSNBKLOG (%d)]\n&quot;
+                &quot;\t[-S STKSIZE (%d)] [-h]\n&quot;, prg, svr_port, lsnbklog, stksize);
+}
+
+int main(int ac, char **av) {
+        int i, sfd, one = 1;
+        coroutine_t co;
+        struct linger ling = { 0, 0 };
+        struct sockaddr_in addr;
+
+        for (i = 1; i &lt; ac; i++) {
+                if (strcmp(av[i], &quot;-r&quot;) == 0) {
+                        if (++i &lt; ac)
+                                rootfs = av[i];
+                } else if (strcmp(av[i], &quot;-p&quot;) == 0) {
+                        if (++i &lt; ac)
+                                svr_port = atoi(av[i]);
+                } else if (strcmp(av[i], &quot;-L&quot;) == 0) {
+                        if (++i &lt; ac)
+                                lsnbklog = atol(av[i]);
+                } else if (strcmp(av[i], &quot;-S&quot;) == 0) {
+                        if (++i &lt; ac)
+                                stksize = atoi(av[i]);
+                } else {
+                        cnhd_usage(av[0]);
+                        return 1;
+                }
+        }
+        signal(SIGINT, cnhd_sigint);
+        signal(SIGPIPE, SIG_IGN);
+        siginterrupt(SIGINT, 1);
+        if (conet_init() &lt; 0)
+                return 1;
+        if ((sfd = conet_socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+                conet_cleanup();
+                return 2;
+        }
+        setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &amp;one, sizeof(one));
+        setsockopt(sfd, SOL_SOCKET, SO_LINGER, &amp;ling, sizeof(ling));
+
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(svr_port);
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        if (bind(sfd, (struct sockaddr *) &amp;addr, sizeof(addr)) == -1) {
+                perror(&quot;bind&quot;);
+                close(sfd);
+                conet_cleanup();
+                return 3;
+        }
+        listen(sfd, lsnbklog);
+        if ((co = co_create((void *) cnhd_acceptor, (void *) (long) sfd, NULL,
+                            stksize)) == NULL) {
+                fprintf(stderr, &quot;Unable to create coroutine\n&quot;);
+                close(sfd);
+                conet_cleanup();
+                return 4;
+        }
+        co_call(co);
+
+        while (!stopsvr) {
+                conet_events_wait(CNHD_EVWAIT_TIMEO);
+                conet_events_dispatch(0);
+        }
+
+        close(sfd);
+        conet_cleanup();
+
+        fprintf(stdout,
+                &quot;Connections .....: %llu\n&quot;
+                &quot;Requests ........: %llu\n&quot;
+                &quot;Total Bytes .....: %llu\n&quot;, conns, reqs, tbytes);
+
+        return 0;
+}
+
+</PRE>
+
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>LICENSE</H2>
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+A copy of the license is available at :
+<P>
+<B><A HREF="http://www.gnu.org/copyleft/lesser.html">http://www.gnu.org/copyleft/lesser.html</A></B>
+
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Developed by Davide Libenzi
+&lt;<B><A HREF="mailto:davidel@xmailserver.org">davidel@xmailserver.org</A></B>&gt;
+
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>AVAILABILITY</H2>
+
+The latest version of
+<B>coronet</B>
+
+can be found at :
+<P>
+<B><A HREF="http://www.xmailserver.org/coronet-lib.html">http://www.xmailserver.org/coronet-lib.html</A></B>
+
+<P>
+The latest version of
+<B>libpcl</B>
+
+can be found at :
+<P>
+<B><A HREF="http://www.xmailserver.org/libpcl.html">http://www.xmailserver.org/libpcl.html</A></B>
+
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>BUGS</H2>
+
+There are no known bugs.  Bug reports and comments to Davide Libenzi
+&lt;<B><A HREF="mailto:davidel@xmailserver.org">davidel@xmailserver.org</A></B>&gt;
+
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">FUNCTIONS</A><DD>
+<DT><A HREF="#lbAF">EXAMPLE</A><DD>
+<DT><A HREF="#lbAG">LICENSE</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+<DT><A HREF="#lbAI">AVAILABILITY</A><DD>
+<DT><A HREF="#lbAJ">BUGS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/cgi-bin/man/man2html">man2html</A>,
+using the manual pages.<BR>
+Time: 18:40:39 GMT, March 19, 2007
+</BODY>
+</HTML>
